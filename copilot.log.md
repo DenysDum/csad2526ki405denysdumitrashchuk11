@@ -159,3 +159,248 @@ Explanation:
 •	Added message(STATUS "...") lines to provide clear instructions during CMake configuration.
 •	These messages will appear in the CMake output, guiding you to build the test executable (unit_tests) and run all tests using ctest.
 No changes to build logic; only user guidance was added.
+
+7.
+Prompt:
+add the following to the ci.sh(for Linux/macOs) and ci.bat(Windows). Both scripts should automate the build process for a CMake project. The scripts must perform the following steps:
+1.	Create a directory named build if it doesn't already exist.
+2.	Change the current directory to build.
+3.	Configure the project by running cmake ...
+4.	Build the project by running cmake --build .. 5. Make sure to give access for the execution and apply changes 6. Run tests by executing ctest and show output only if tests fail.
+
+Answer:
+ci.sh (Linux/macOS)
+#!/bin/bash
+set -e
+
+# Step 1: Create build directory if it doesn't exist
+mkdir -p build
+
+# Step 2: Change to build directory
+cd build
+
+# Step 3: Configure the project
+cmake ..
+
+# Step 4: Build the project
+cmake --build .
+
+# Step 5: Ensure script is executable (applies to itself)
+chmod +x ../ci.sh
+
+# Step 6: Run tests, show output only if tests fail
+ctest --output-on-failure
+
+ci.bat (Windows)
+@echo off
+REM Step 1: Create build directory if it doesn't exist
+if not exist build mkdir build
+
+REM Step 2: Change to build directory
+cd build
+
+REM Step 3: Configure the project
+cmake ..
+
+REM Step 4: Build the project
+cmake --build .
+
+REM Step 5: No need to set executable permission on Windows
+
+REM Step 6: Run tests, show output only if tests fail
+ctest --output-on-failure
+
+REM Return to previous directory
+cd ..
+Notes:
+•	Both scripts create and enter the build directory, configure, build, and run tests.
+•	The shell script (ci.sh) sets executable permission for itself.
+•	The batch script (ci.bat) omits permission changes, as they're not needed on Windows.
+•	ctest --output-on-failure displays output only for failed tests.
+
+8. 
+Prompt:
+Cmake couldn't find a unit_tests.cpp, it's located in file tests. Change the Cmakelists.txt
+
+Answer:
+cmake_minimum_required(VERSION 3.8)
+
+project(HelloWorld LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(HelloWorld main.cpp)
+
+# GoogleTest support
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+# Update path to unit_tests.cpp in the tests directory
+add_executable(unit_tests tests/unit_tests.cpp math_operations.cpp)
+target_link_libraries(unit_tests gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(unit_tests)
+
+# Instructions for building and running
+message(STATUS "To build the test executable, run: cmake --build . --target unit_tests")
+message(STATUS "To launch all tests, run: ctest --output-on-failure")
+
+Change made:
+•	Updated the path to unit_tests.cpp to tests/unit_tests.cpp in the add_executable(unit_tests ...) command.
+This ensures CMake can find your test source file in the correct directory.
+
+9.
+Prompt:
+Add to the Cmakelists.txt a path to math_operations.h that located in the root folder of solution.
+
+Answer:
+cmake_minimum_required(VERSION 3.8)
+
+project(HelloWorld LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(HelloWorld main.cpp)
+
+# Ensure the root folder (where math_operations.h is located) is included
+target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR})
+
+# GoogleTest support
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+# Ensure the root folder is included for unit_tests as well
+add_executable(unit_tests tests/unit_tests.cpp math_operations.cpp)
+target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(unit_tests gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(unit_tests)
+
+# Instructions for building and running
+message(STATUS "To build the main executable, run: cmake --build . --target HelloWorld")
+message(STATUS "To build the test executable, run: cmake --build . --target unit_tests")
+message(STATUS "To run all tests, execute: ctest --output-on-failure")
+
+Change made:
+•	Added target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR}) and the same for unit_tests to ensure the compiler can find math_operations.h in the root folder.
+This guarantees both your main and test targets can include the header file without path issues.
+
+10. 
+Prompt:
+Add the unit_tests.cpp as a test for ctest.
+
+Answer:
+cmake_minimum_required(VERSION 3.8)
+
+project(HelloWorld LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(HelloWorld main.cpp)
+target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR})
+
+# GoogleTest support
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+add_executable(unit_tests tests/unit_tests.cpp math_operations.cpp)
+target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(unit_tests gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(unit_tests)
+
+# Register unit_tests.cpp as a test for ctest
+add_test(NAME unit_tests COMMAND unit_tests)
+
+# Instructions for building and running
+message(STATUS "To build the main executable, run: cmake --build . --target HelloWorld")
+message(STATUS "To build the test executable, run: cmake --build . --target unit_tests")
+message(STATUS "To run all tests, execute: ctest --output-on-failure")
+
+Change made:
+•	Added add_test(NAME unit_tests COMMAND unit_tests) to explicitly register unit_tests as a test for CTest.
+This ensures that running ctest will execute your test binary, even if you are not using GoogleTest macros.
+
+11.
+Prompt:
+Add the defining of the debug config while using command ctest in ci.bat and ci.sh.
+
+Answer:
+#!/bin/bash
+set -e
+
+# Step 1: Create build directory if it doesn't exist
+mkdir -p build
+
+# Step 2: Change to build directory
+cd build
+
+# Step 3: Configure the project
+cmake ..
+
+# Step 4: Build the project
+cmake --build . --config Debug
+
+# Step 5: Ensure script is executable (applies to itself)
+chmod +x ../ci.sh
+
+# Step 6: Run tests in Debug config, show output only if tests fail
+ctest --output-on-failure -C Debug
+
+@echo off
+REM Step 1: Create build directory if it doesn't exist
+if not exist build mkdir build
+
+REM Step 2: Change to build directory
+cd build
+
+REM Step 3: Configure the project
+cmake ..
+
+REM Step 4: Build the project in Debug configuration
+cmake --build . --config Debug
+
+REM Step 5: No need to set executable permission on Windows
+
+REM Step 6: Run tests in Debug config, show output only if tests fail
+ctest --output-on-failure -C Debug
+
+REM Return to previous directory
+cd ..
+
+Explanation:
+•	Added --config Debug to both cmake --build and ctest commands to ensure the Debug configuration is used for building and testing.
+•	This is important for multi-config generators (like Visual Studio) and ensures tests run against the Debug build.
+
+
+
+
+
+
