@@ -399,6 +399,60 @@ Explanation:
 •	Added --config Debug to both cmake --build and ctest commands to ensure the Debug configuration is used for building and testing.
 •	This is important for multi-config generators (like Visual Studio) and ensures tests run against the Debug build.
 
+12.
+Prompt:
+@workflow fill the ci.yml with a workflow that does the following: Trigger: Launch the workflow on push or pull request to branches containing "develop" or "master" in their name. Job: Create one Job (for example, cross_build). Strategy: Use a matrix (strategy: matrix) to run the build on three operating systems:
+runs-on: ubuntu-latest (Linux) runs-on: windows-latest (Windows) runs-on: macos-latest (macOS)
+Steps: Each build should include the following steps:
+Checkout code (actions/checkout@v4) Install CMake (if needed) Run configuration and build commands (execute the script from Stage 3) Deploy
+
+Answer:
+name: CI
+
+on:
+  push:
+    branches:
+      - '*develop*'
+      - '*master*'
+  pull_request:
+    branches:
+      - '*develop*'
+      - '*master*'
+
+jobs:
+  cross_build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: '3.14.0' # Minimum for C++14, adjust as needed
+
+      - name: Configure and Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release
+
+      - name: Deploy
+        run: echo "Deploy step goes here"
+
+Explanation:
+•	Triggers on push or pull request to branches containing "develop" or "master".
+•	Uses a matrix to build on Ubuntu, Windows, and macOS.
+•	Steps: checkout, install CMake, configure/build, and a placeholder deploy step.
+•	The CMake install step uses a cross-platform action.
+•	The build step uses standard CMake commands for all platforms.
+•	The deploy step is a placeholder; replace with your actual deployment logic.
+
+
 
 
 
