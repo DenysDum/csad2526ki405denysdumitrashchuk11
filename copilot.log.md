@@ -452,6 +452,75 @@ Explanation:
 •	The build step uses standard CMake commands for all platforms.
 •	The deploy step is a placeholder; replace with your actual deployment logic.
 
+13.
+Prompt:
+Error happened when jobs were running on the repo. Error text: Run mkdir build -- The CXX compiler identification is GNU 13.3.0 -- Check for working CXX compiler: /usr/bin/c++ -- Check for working CXX compiler: /usr/bin/c++ -- works -- Detecting CXX compiler ABI info -- Detecting CXX compiler ABI info - done -- Detecting CXX compile features -- Detecting CXX compile features - done CMake Error at build/_deps/googletest-src/CMakeLists.txt:4 (cmake_minimum_required): CMake 3.16 or higher is required.  You are running version 3.14.0
+
+Answer:
+Take a deep breath.
+The error message indicates that GoogleTest now requires CMake 3.16 or higher, but your workflow is installing CMake 3.14.0.
+Example fix for your GitHub Actions workflow
+- name: Install CMake
+  uses: jwlawson/actions-setup-cmake@v1
+  with:
+    cmake-version: '3.16.0'
+---
+Summary:
+•	Change the cmake-version in your workflow to 3.16.0 or higher.
+•	This will resolve the error and allow GoogleTest to build correctly.
+Let me know if you need the full updated workflow file.
+
+14. 
+Prompt:
+Configure and change "Configure and Build" in the ci.yml so it will execute local ci-script to build and test the program for Windows and Linux/MacOS. ci.bat and ci.sh located in the root folder of the solution.
+
+Answer:
+name: CI
+
+on:
+  push:
+    branches:
+      - '*develop*'
+      - '*master*'
+  pull_request:
+    branches:
+      - '*develop*'
+      - '*master*'
+
+jobs:
+  cross_build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: 'latest'
+
+      - name: Configure and Build
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            powershell -Command "./ci.bat"
+          else
+            chmod +x ./ci.sh
+            ./ci.sh
+          fi
+
+      - name: Deploy
+        run: echo "Deploy step goes here"
+
+Explanation:
+•	The Configure and Build step now checks the OS and runs the appropriate local CI script (ci.bat for Windows, ci.sh for Linux/macOS).
+•	chmod +x ./ci.sh ensures the shell script is executable on non-Windows platforms.
+•	Uses powershell to run the batch file on Windows runners.
+•	Both scripts must be present in the root of your repository.
+
 
 
 
