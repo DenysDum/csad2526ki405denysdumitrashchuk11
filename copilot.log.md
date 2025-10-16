@@ -521,6 +521,56 @@ Explanation:
 •	Uses powershell to run the batch file on Windows runners.
 •	Both scripts must be present in the root of your repository.
 
+15. 
+Prompt:
+ Configure and change "Configure and Build" in the ci.yml so it will execute local ci-script to build and test the program for Windows and Linux/MacOS. ci.bat and ci.sh located in the root folder of the solution.
+
+Answer:
+name: CI
+
+on:
+  push:
+    branches:
+      - '*develop*'
+      - '*master*'
+  pull_request:
+    branches:
+      - '*develop*'
+      - '*master*'
+
+jobs:
+  cross_build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: 'latest'
+
+      - name: Configure and Build
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            powershell -Command "./ci.bat"
+          else
+            chmod +x ./ci.sh
+            ./ci.sh
+          fi
+
+      - name: Deploy
+        run: echo "Deploy step goes here"
+
+Explanation:
+•	The Configure and Build step now checks the OS and runs the appropriate local CI script (ci.bat for Windows, ci.sh for Linux/macOS).
+•	chmod +x ./ci.sh ensures the shell script is executable on non-Windows platforms.
+•	Uses powershell to run the batch file on Windows runners.
+•	Both scripts must be present in the root of your repository.
 
 
 
